@@ -36,6 +36,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/backup"
 	"github.com/aws/aws-sdk-go-v2/service/batch"
 	"github.com/aws/aws-sdk-go-v2/service/bedrock"
+	"github.com/aws/aws-sdk-go-v2/service/bedrockagent"
+	"github.com/aws/aws-sdk-go-v2/service/budgets"
 	"github.com/aws/aws-sdk-go-v2/service/cloudcontrol"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
@@ -52,9 +54,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go-v2/service/configservice"
+	"github.com/aws/aws-sdk-go-v2/service/connect"
 	"github.com/aws/aws-sdk-go-v2/service/costexplorer"
 	"github.com/aws/aws-sdk-go-v2/service/costoptimizationhub"
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
+	"github.com/aws/aws-sdk-go-v2/service/datasync"
 	"github.com/aws/aws-sdk-go-v2/service/dax"
 	"github.com/aws/aws-sdk-go-v2/service/directoryservice"
 	"github.com/aws/aws-sdk-go-v2/service/dlm"
@@ -88,6 +92,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/inspector2"
 	"github.com/aws/aws-sdk-go-v2/service/iot"
 	"github.com/aws/aws-sdk-go-v2/service/kafka"
+	"github.com/aws/aws-sdk-go-v2/service/kafkaconnect"
 	"github.com/aws/aws-sdk-go-v2/service/keyspaces"
 	"github.com/aws/aws-sdk-go-v2/service/kinesis"
 	"github.com/aws/aws-sdk-go-v2/service/kinesisanalyticsv2"
@@ -134,6 +139,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/servicediscovery"
 	"github.com/aws/aws-sdk-go-v2/service/servicequotas"
 	"github.com/aws/aws-sdk-go-v2/service/ses"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go-v2/service/sfn"
 	"github.com/aws/aws-sdk-go-v2/service/shield"
 	"github.com/aws/aws-sdk-go-v2/service/simspaceweaver"
@@ -357,6 +363,19 @@ func BedrockClient(ctx context.Context, d *plugin.QueryData) (*bedrock.Client, e
 	return bedrock.NewFromConfig(*cfg), nil
 }
 
+// BedrockAgentClient returns the service client for AWS Bedrock Agent service
+func BedrockAgentClient(ctx context.Context, d *plugin.QueryData) (*bedrockagent.Client, error) {
+	// Get client config
+	cfg, err := getClientForQuerySupportedRegion(ctx, d, AWS_BEDROCK_SERVICE_ID)
+	if err != nil {
+		return nil, err
+	}
+	if cfg == nil {
+		return nil, nil
+	}
+	return bedrockagent.NewFromConfig(*cfg), nil
+}
+
 func CloudControlClient(ctx context.Context, d *plugin.QueryData) (*cloudcontrol.Client, error) {
 	// CloudControl returns GeneralServiceException in a lot of situations, which
 	// AWS SDK treats as retryable. This is frustrating because we end up retrying
@@ -530,6 +549,27 @@ func ConfigClient(ctx context.Context, d *plugin.QueryData) (*configservice.Clie
 	return configservice.NewFromConfig(*cfg), nil
 }
 
+func ConnectClient(ctx context.Context, d *plugin.QueryData) (*connect.Client, error) {
+	cfg, err := getClientForQuerySupportedRegion(ctx, d, AWS_CONNECT_SERVICE_ID)
+	if err != nil {
+		return nil, err
+	}
+	if cfg == nil {
+		return nil, nil
+	}
+	return connect.NewFromConfig(*cfg), nil
+}
+
+func BudgetsClient(ctx context.Context, d *plugin.QueryData) (*budgets.Client, error) {
+	// AWS Budgets is a global service.
+	// https://docs.aws.amazon.com/general/latest/gr/billing.html
+	cfg, err := getClientForDefaultRegion(ctx, d)
+	if err != nil {
+		return nil, err
+	}
+	return budgets.NewFromConfig(*cfg), nil
+}
+
 func CostExplorerClient(ctx context.Context, d *plugin.QueryData) (*costexplorer.Client, error) {
 	// Cost Explorer is a global service that operates from a single
 	// region (ce.us-east-1.amazonaws.com).
@@ -609,6 +649,19 @@ func DRSClient(ctx context.Context, d *plugin.QueryData) (*drs.Client, error) {
 		return nil, nil
 	}
 	return drs.NewFromConfig(*cfg), nil
+}
+
+func DataSyncClient(ctx context.Context, d *plugin.QueryData) (*datasync.Client, error) {
+	cfg, err := getClientForQuerySupportedRegion(ctx, d, AWS_DATASYNC_SERVICE_ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg == nil {
+		return nil, nil
+	}
+
+	return datasync.NewFromConfig(*cfg), nil
 }
 
 func DynamoDBClient(ctx context.Context, d *plugin.QueryData) (*dynamodb.Client, error) {
@@ -924,6 +977,17 @@ func KafkaClient(ctx context.Context, d *plugin.QueryData) (*kafka.Client, error
 		return nil, nil
 	}
 	return kafka.NewFromConfig(*cfg), nil
+}
+
+func KafkaConnectClient(ctx context.Context, d *plugin.QueryData) (*kafkaconnect.Client, error) {
+	cfg, err := getClientForQuerySupportedRegion(ctx, d, AWS_KAFKACONNECT_SERVICE_ID)
+	if err != nil {
+		return nil, err
+	}
+	if cfg == nil {
+		return nil, nil
+	}
+	return kafkaconnect.NewFromConfig(*cfg), nil
 }
 
 func KeyspacesClient(ctx context.Context, d *plugin.QueryData) (*keyspaces.Client, error) {
@@ -1508,6 +1572,17 @@ func SESClient(ctx context.Context, d *plugin.QueryData) (*ses.Client, error) {
 		return nil, nil
 	}
 	return ses.NewFromConfig(*cfg), nil
+}
+
+func SESV2Client(ctx context.Context, d *plugin.QueryData) (*sesv2.Client, error) {
+	cfg, err := getClientForQuerySupportedRegion(ctx, d, AWS_EMAIL_SERVICE_ID)
+	if err != nil {
+		return nil, err
+	}
+	if cfg == nil {
+		return nil, nil
+	}
+	return sesv2.NewFromConfig(*cfg), nil
 }
 
 func ServerlessApplicationRepositoryClient(ctx context.Context, d *plugin.QueryData) (*serverlessapplicationrepository.Client, error) {

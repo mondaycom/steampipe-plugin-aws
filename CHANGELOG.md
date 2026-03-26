@@ -1,3 +1,160 @@
+## v1.30.0 [2026-03-06]
+
+_What's new?_
+
+- New tables added
+  - [aws_ec2_fleet](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_ec2_fleet) ([#2689](https://github.com/turbot/steampipe-plugin-aws/pull/2689)) (Thanks [@pdecat](https://github.com/pdecat) for the contribution!)
+
+_Enhancements_
+
+- Added column `actionability` to `aws_health_event` table. ([#2697](https://github.com/turbot/steampipe-plugin-aws/pull/2697)) (Thanks [@Recurzion](https://github.com/Recurzion) for the contribution!)
+- Added column `monitoring_subscription` to `aws_cloudfront_distribution` table. ([#2695](https://github.com/turbot/steampipe-plugin-aws/pull/2695)) (Thanks [@dj00808](https://github.com/dj00808) for the contribution!)
+- Added columns `name`, `created_date`, `owner_account_id`, and `status` to `aws_ssoadmin_instance` table. ([#2692](https://github.com/turbot/steampipe-plugin-aws/pull/2692))
+
+_Dependencies_
+
+- Updated `urllib3`, `lodash`, and `diff` to fix high severity vulnerabilities. ([#2698](https://github.com/turbot/steampipe-plugin-aws/pull/2698)) (Thanks [@dj00808](https://github.com/dj00808) for the contribution!)
+
+## v1.29.0 [2025-12-05]
+
+_Enhancements_
+
+- Added columns `api_status`, `api_status_message`, `disable_execute_api_endpoint`, `endpoint_access_mode`, and `security_policy` to `aws_api_gateway_rest_api` table. ([#2685](https://github.com/turbot/steampipe-plugin-aws/pull/2685))
+
+## v1.28.0 [2025-11-20]
+
+_What's new?_
+
+- New tables added
+  - [aws_budgets_budget](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_budgets_budget) ([#2681](https://github.com/turbot/steampipe-plugin-aws/pull/2681))
+  - [aws_ce_anomaly_monitor](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_ce_anomaly_monitor) ([#2681](https://github.com/turbot/steampipe-plugin-aws/pull/2681))
+  - [aws_ce_cost_allocation_tags](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_ce_cost_allocation_tags) ([#2681](https://github.com/turbot/steampipe-plugin-aws/pull/2681))
+  - [aws_config_rule_compliance_detail](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_config_rule_compliance_detail) ([#2668](https://github.com/turbot/steampipe-plugin-aws/pull/2668))
+
+_Enhancements_
+
+- Added `options` column to `aws_ec2_transit_gateway_vpc_attachment` table. ([#2683](https://github.com/turbot/steampipe-plugin-aws/pull/2683))
+- Added `managed_query_results_enabled`, `managed_query_results_kms_key`, and `enable_minimum_encryption_configuration` columns to `aws_athena_workgroup` table. ([#2678](https://github.com/turbot/steampipe-plugin-aws/pull/2678))
+- Updated `aws_memorydb_cluster` table to retrieve detailed information about shards associated with the cluster. ([#2676](https://github.com/turbot/steampipe-plugin-aws/pull/2676)) (Thanks [@ustndagsemih](https://github.com/ustndagsemih) for the contribution!)
+
+## v1.27.0 [2025-11-18]
+
+_What's new?_
+
+- New tables added
+  - [aws_bedrock_guardrail](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_bedrock_guardrail) ([#2661](https://github.com/turbot/steampipe-plugin-aws/pull/2661)) (Thanks [@SatoriSec](https://github.com/SatoriSec) for the contribution!)
+  - [aws_opensearch_reserved_instance](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_opensearch_reserved_instance) ([#2665](https://github.com/turbot/steampipe-plugin-aws/pull/2665))
+  - [aws_sesv2_suppressed_destination](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_sesv2_suppressed_destination) ([#2667](https://github.com/turbot/steampipe-plugin-aws/pull/2667)) (Thanks [@jramosf](https://github.com/jramosf) for the contribution!)
+  - [aws_ssoadmin_customer_managed_policy_attachment](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_ssoadmin_customer_managed_policy_attachment) ([#2663](https://github.com/turbot/steampipe-plugin-aws/pull/2663)) (Thanks [@nickthejagger](https://github.com/nickthejagger) for the contribution!)
+
+_Enhancements_
+
+- Added the column `attributes` to `aws_ec2_target_group` table. ([#2664](https://github.com/turbot/steampipe-plugin-aws/pull/2664))
+- Added the column `state` to `aws_organizations_account` table. ([#2677](https://github.com/turbot/steampipe-plugin-aws/pull/2677)) (Thanks [@pdecat](https://github.com/pdecat) for the contribution!)
+
+_Deprecations_
+
+- Deprecated the `status` column in `aws_organizations_account` table. ([#2677](https://github.com/turbot/steampipe-plugin-aws/pull/2677)) (Thanks [@pdecat](https://github.com/pdecat) for the contribution!)
+
+## v1.26.0 [2025-10-23]
+
+_What's new?_
+
+- New tables added
+  - [aws_eks_access_entry](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_eks_access_entry) ([#2651](https://github.com/turbot/steampipe-plugin-aws/pull/2651))
+  - [aws_eks_access_policy_association](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_eks_access_policy_association) ([#2651](https://github.com/turbot/steampipe-plugin-aws/pull/2651))
+
+_Enhancements_
+
+- Added the column `routing_config` to `aws_lambda_alias` table. ([#2657](https://github.com/turbot/steampipe-plugin-aws/pull/2657))
+
+_Bug fixes_
+
+- Fixed the `code` column in `aws_lambda_version` table to correctly return data instead of `null`. ([#2656](https://github.com/turbot/steampipe-plugin-aws/pull/2656))
+
+_Dependencies_
+
+- Recompiled plugin with [aws-sdk-go-v2 v1.39.3](https://github.com/aws/aws-sdk-go-v2/blob/main/CHANGELOG.md). ([#2658](https://github.com/turbot/steampipe-plugin-aws/pull/2658))
+- Updated the `OpenSearch` tables to use [github.com/aws/aws-sdk-go-v2/service/opensearch v1.52.6](https://github.com/aws/aws-sdk-go-v2/blob/main/service/opensearch/CHANGELOG.md#v1526-2025-10-16) module. ([#2658](https://github.com/turbot/steampipe-plugin-aws/pull/2658))
+
+## v1.25.0 [2025-10-14]
+
+_Enhancements_
+
+- Added `full_snapshot_size_in_bytes` column to `aws_ebs_snapshot` table. ([#2652](https://github.com/turbot/steampipe-plugin-aws/pull/2652)) (Thanks [@bahybintang](https://github.com/bahybintang) for the contribution!)
+- Added `code` column to `aws_lambda_version` table. ([#2649](https://github.com/turbot/steampipe-plugin-aws/pull/2649))
+
+_Bug fixes_
+
+- Fixed the default rate limiter configuration for `AWS Kinesis` service tables. ([#2644](https://github.com/turbot/steampipe-plugin-aws/pull/2644))  (Thanks [@pdecat](https://github.com/pdecat) for the contribution!)
+
+_Dependencies_
+
+- Recompiled plugin with [steampipe-plugin-sdk v5.13.1](https://github.com/turbot/steampipe-plugin-sdk/blob/develop/CHANGELOG.md#v5131-2025-09-25) that addresses critical and high vulnerabilities in dependent packages. ([#2649](https://github.com/turbot/steampipe-plugin-aws/pull/2649))
+
+## v1.24.0 [2025-09-19]
+
+_Enhancements_
+
+- Added `physical_resource_id` column as an optional qualifier to the `aws_cloudformation_stack_resource` table. ([#2635](https://github.com/turbot/steampipe-plugin-aws/pull/2635))
+- Added `metadata` column to `aws_cloudformation_stack_resource` table. ([#2635](https://github.com/turbot/steampipe-plugin-aws/pull/2635))
+- Added default rate limit configuration for `AWS Lambda` service tables. ([#2561](https://github.com/turbot/steampipe-plugin-aws/pull/2561))
+
+_Bug fixes_
+
+- Fixed the `aws_availability_zone` table to respect `ignore_error_codes` and  `ignore_error_messages` connection config arguments. ([#2640](https://github.com/turbot/steampipe-plugin-aws/pull/2640))
+
+## v1.23.0 [2025-08-22]
+
+_What's new?_
+
+- New tables added
+  - [aws_ec2_spot_fleet_request](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_ec2_spot_fleet_request) ([#2599](https://github.com/turbot/steampipe-plugin-aws/pull/2599))
+  - [aws_glue_ml_transform](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_glue_ml_transform) ([#2610](https://github.com/turbot/steampipe-plugin-aws/pull/2610))
+  - [aws_inspector2_organization_configuration](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_inspector2_organization_configuration) ([#2608](https://github.com/turbot/steampipe-plugin-aws/pull/2608))
+  - [aws_mskconnect_connector](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_mskconnect_connector) ([#2603](https://github.com/turbot/steampipe-plugin-aws/pull/2603))
+  - [aws_s3_directory_bucket](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_s3_directory_bucket) ([#2618](https://github.com/turbot/steampipe-plugin-aws/pull/2618))
+  - [aws_servicecatalog_portfolio_share](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_servicecatalog_portfolio_share) ([#2612](https://github.com/turbot/steampipe-plugin-aws/pull/2612))
+  - [aws_ssm_service_setting](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_ssm_service_setting) ([#2611](https://github.com/turbot/steampipe-plugin-aws/pull/2611))
+  - [aws_transfer_connector](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_transfer_connector) ([#2606](https://github.com/turbot/steampipe-plugin-aws/pull/2606))
+  - [aws_vpc_block_public_access_options](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_vpc_block_public_access_options) ([#2595](https://github.com/turbot/steampipe-plugin-aws/pull/2595))
+
+_Enhancements_
+
+- Added columns `tags` and `tags_src` to `aws_ec2_load_balancer_listener_rule` table. ([#2625](https://github.com/turbot/steampipe-plugin-aws/pull/2625))
+- Added column `multi_az` to `aws_redshift_cluster` table. ([#2617](https://github.com/turbot/steampipe-plugin-aws/pull/2617))
+
+_Bug fixes_
+
+- Fixed the `aws_cloudformation_stack_resource` table to correctly return data instead of an error. ([#2622](https://github.com/turbot/steampipe-plugin-aws/pull/2622))
+
+## v1.22.0 [2025-08-14]
+
+_What's new?_
+
+- New tables added
+  - [aws_appsync_api](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_appsync_api) ([#2591](https://github.com/turbot/steampipe-plugin-aws/pull/2591))
+  - [aws_codebuild_report_group](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_codebuild_report_group) ([#2589](https://github.com/turbot/steampipe-plugin-aws/pull/2589))
+  - [aws_connect_instance_attribute](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_connect_instance_attribute) ([#2592](https://github.com/turbot/steampipe-plugin-aws/pull/2592))
+  - [aws_connect_instance](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_connect_instance) ([#2592](https://github.com/turbot/steampipe-plugin-aws/pull/2592))
+  - [aws_datasync_task](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_datasync_task) ([#2590](https://github.com/turbot/steampipe-plugin-aws/pull/2590))
+  - [aws_vpc_security_group_vpc_association](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_vpc_security_group_vpc_association) ([#2597](https://github.com/turbot/steampipe-plugin-aws/pull/2597))
+
+_Enhancements_
+
+- Added `api_cache` column to `aws_appsync_graphql_api` table. ([#2591](https://github.com/turbot/steampipe-plugin-aws/pull/2591))
+
+## v1.21.0 [2025-07-30]
+
+_What's new?_
+
+- New tables added
+  - [aws_bedrock_agent](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_bedrock_agent) ([#2580](https://github.com/turbot/steampipe-plugin-aws/pull/2580))
+  - [aws_bedrock_foundation_model](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_bedrock_foundation_model) ([#2581](https://github.com/turbot/steampipe-plugin-aws/pull/2581))
+  - [aws_bedrock_imported_model](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_bedrock_imported_model) ([#2581](https://github.com/turbot/steampipe-plugin-aws/pull/2581))
+  - [aws_bedrock_knowledge_base](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_bedrock_knowledge_base) ([#2580](https://github.com/turbot/steampipe-plugin-aws/pull/2580))
+  - [aws_elasticache_serverless_cache](https://hub.steampipe.io/plugins/turbot/aws/tables/aws_elasticache_serverless_cache) ([#2538](https://github.com/turbot/steampipe-plugin-aws/pull/2538)) (Thanks [@michalpl-monday](https://github.com/michalpl-monday) for the contribution!)
+
 ## v1.20.0 [2025-07-24]
 
 _What's new?_
