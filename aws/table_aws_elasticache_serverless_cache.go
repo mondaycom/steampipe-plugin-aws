@@ -2,13 +2,12 @@ package aws
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/elasticache"
 	"github.com/aws/aws-sdk-go-v2/service/elasticache/types"
-
-	"github.com/aws/smithy-go"
+	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
+	taggingTypes "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 
 	"github.com/turbot/steampipe-plugin-sdk/v5/grpc/proto"
 	"github.com/turbot/steampipe-plugin-sdk/v5/plugin"
@@ -29,12 +28,6 @@ func tableAwsElastiCacheServerlessCache(_ context.Context) *plugin.Table {
 		List: &plugin.ListConfig{
 			Hydrate: listElastiCacheServerlessCaches,
 			Tags:    map[string]string{"service": "elasticache", "action": "DescribeServerlessCaches"},
-		},
-		HydrateConfig: []plugin.HydrateConfig{
-			{
-				Func: listTagsForElastiCacheServerlessCache,
-				Tags: map[string]string{"service": "elasticache", "action": "ListTagsForResource"},
-			},
 		},
 
 		GetMatrixItemFunc: SupportedRegionMatrix(AWS_ELASTICACHE_SERVICE_ID),
@@ -124,7 +117,6 @@ func tableAwsElastiCacheServerlessCache(_ context.Context) *plugin.Table {
 				Name:        "tags_src",
 				Description: "A list of tags associated with the serverless cache.",
 				Type:        proto.ColumnType_JSON,
-				Hydrate:     listTagsForElastiCacheServerlessCache,
 				Transform:   transform.FromField("TagList"),
 			},
 
@@ -139,7 +131,6 @@ func tableAwsElastiCacheServerlessCache(_ context.Context) *plugin.Table {
 				Name:        "tags",
 				Description: resourceInterfaceDescription("tags"),
 				Type:        proto.ColumnType_JSON,
-				Hydrate:     listTagsForElastiCacheServerlessCache,
 				Transform:   transform.From(serverlessCacheTagListToTurbotTags),
 			},
 			{
@@ -152,6 +143,13 @@ func tableAwsElastiCacheServerlessCache(_ context.Context) *plugin.Table {
 	}
 }
 
+//// TYPES
+
+type serverlessCacheWithTags struct {
+	types.ServerlessCache
+	TagList []types.Tag
+}
+
 //// LIST FUNCTION
 
 func listElastiCacheServerlessCaches(ctx context.Context, d *plugin.QueryData, _ *plugin.HydrateData) (interface{}, error) {
@@ -161,6 +159,11 @@ func listElastiCacheServerlessCaches(ctx context.Context, d *plugin.QueryData, _
 		plugin.Logger(ctx).Error("aws_elasticache_serverless_cache.listElastiCacheServerlessCaches", "connection_error", err)
 		return nil, err
 	}
+
+	// Batch fetch all tags for serverless caches in this region using the
+	// Resource Groups Tagging API. This replaces N individual ListTagsForResource
+	// calls with a single paginated GetResources call.
+	tagMap := fetchServerlessCacheTagsBatch(ctx, d)
 
 	input := &elasticache.DescribeServerlessCachesInput{
 		MaxResults: aws.Int32(100),
@@ -194,7 +197,15 @@ func listElastiCacheServerlessCaches(ctx context.Context, d *plugin.QueryData, _
 		}
 
 		for _, serverlessCache := range output.ServerlessCaches {
-			d.StreamListItem(ctx, serverlessCache)
+			var tags []types.Tag
+			if serverlessCache.ARN != nil {
+				tags = tagMap[*serverlessCache.ARN]
+			}
+
+			d.StreamListItem(ctx, serverlessCacheWithTags{
+				ServerlessCache: serverlessCache,
+				TagList:         tags,
+			})
 
 			// Context can be cancelled due to manual cancellation or the limit has been hit
 			if d.RowsRemaining(ctx) == 0 {
@@ -233,54 +244,106 @@ func getElastiCacheServerlessCache(ctx context.Context, d *plugin.QueryData, _ *
 		return nil, err
 	}
 
-	if len(op.ServerlessCaches) > 0 {
-		return op.ServerlessCaches[0], nil
+	if len(op.ServerlessCaches) == 0 {
+		return nil, nil
 	}
 
-	return nil, nil
+	cache := op.ServerlessCaches[0]
+
+	// Fetch tags for this single resource
+	var tags []types.Tag
+	if cache.ARN != nil {
+		tags = fetchServerlessCacheTagsSingle(ctx, d, *cache.ARN)
+	}
+
+	return serverlessCacheWithTags{
+		ServerlessCache: cache,
+		TagList:         tags,
+	}, nil
 }
 
-func listTagsForElastiCacheServerlessCache(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
-	serverlessCache := h.Item.(types.ServerlessCache)
+//// TAG FUNCTIONS
 
-	// Create session
-	svc, err := ElastiCacheClient(ctx, d)
+// fetchServerlessCacheTagsBatch fetches tags for all elasticache serverless
+// caches in the current region using the Resource Groups Tagging API.
+// Returns a map of ARN -> []types.Tag. On error, returns an empty map
+// so the list function can still return results without tags.
+func fetchServerlessCacheTagsBatch(ctx context.Context, d *plugin.QueryData) map[string][]types.Tag {
+	tagMap := make(map[string][]types.Tag)
+
+	svc, err := ResourceGroupsTaggingClient(ctx, d)
 	if err != nil {
-		plugin.Logger(ctx).Error("aws_elasticache_serverless_cache.listTagsForElastiCacheServerlessCache", "connection_error", err)
-		return nil, err
+		plugin.Logger(ctx).Warn("aws_elasticache_serverless_cache.fetchServerlessCacheTagsBatch", "tagging_client_error", err)
+		return tagMap
 	}
 
-	// Build param
-	param := &elasticache.ListTagsForResourceInput{
-		ResourceName: serverlessCache.ARN,
+	input := &resourcegroupstaggingapi.GetResourcesInput{
+		ResourceTypeFilters: []string{"elasticache:serverlesscache"},
+		ResourcesPerPage:    aws.Int32(100),
 	}
 
-	serverlessCacheTags, err := svc.ListTagsForResource(ctx, param)
+	paginator := resourcegroupstaggingapi.NewGetResourcesPaginator(svc, input, func(o *resourcegroupstaggingapi.GetResourcesPaginatorOptions) {
+		o.Limit = 100
+		o.StopOnDuplicateToken = true
+	})
 
-	if err != nil {
-		var ae smithy.APIError
-		if errors.As(err, &ae) {
-			if ae.ErrorCode() == "ServerlessCacheNotFoundFault" {
-				return nil, nil
+	for paginator.HasMorePages() {
+		output, err := paginator.NextPage(ctx)
+		if err != nil {
+			plugin.Logger(ctx).Warn("aws_elasticache_serverless_cache.fetchServerlessCacheTagsBatch", "tagging_api_error", err)
+			return tagMap
+		}
+
+		for _, resource := range output.ResourceTagMappingList {
+			if resource.ResourceARN != nil {
+				tagMap[*resource.ResourceARN] = convertTaggingToElastiCacheTags(resource.Tags)
 			}
 		}
-		plugin.Logger(ctx).Error("aws_elasticache_serverless_cache.listTagsForElastiCacheServerlessCache", "api_error", err)
-		return nil, err
 	}
 
-	return serverlessCacheTags, nil
+	return tagMap
+}
+
+// fetchServerlessCacheTagsSingle fetches tags for a single serverless cache
+// using the ElastiCache ListTagsForResource API. Used by the Get function
+// where batch fetching is unnecessary.
+func fetchServerlessCacheTagsSingle(ctx context.Context, d *plugin.QueryData, arn string) []types.Tag {
+	svc, err := ElastiCacheClient(ctx, d)
+	if err != nil {
+		plugin.Logger(ctx).Warn("aws_elasticache_serverless_cache.fetchServerlessCacheTagsSingle", "connection_error", err)
+		return nil
+	}
+
+	output, err := svc.ListTagsForResource(ctx, &elasticache.ListTagsForResourceInput{
+		ResourceName: aws.String(arn),
+	})
+	if err != nil {
+		plugin.Logger(ctx).Warn("aws_elasticache_serverless_cache.fetchServerlessCacheTagsSingle", "api_error", err)
+		return nil
+	}
+
+	return output.TagList
+}
+
+// convertTaggingToElastiCacheTags converts Resource Groups Tagging API tags
+// to ElastiCache tag types.
+func convertTaggingToElastiCacheTags(taggingTags []taggingTypes.Tag) []types.Tag {
+	tags := make([]types.Tag, len(taggingTags))
+	for i, t := range taggingTags {
+		tags[i] = types.Tag{Key: t.Key, Value: t.Value}
+	}
+	return tags
 }
 
 //// TRANSFORM FUNCTIONS
 
 func serverlessCacheTagListToTurbotTags(ctx context.Context, d *transform.TransformData) (interface{}, error) {
-	serverlessCacheTag := d.HydrateItem.(*elasticache.ListTagsForResourceOutput)
+	item := d.HydrateItem.(serverlessCacheWithTags)
 
-	// Mapping the resource tags inside turbotTags
 	var turbotTagsMap map[string]string
-	if len(serverlessCacheTag.TagList) > 0 {
+	if len(item.TagList) > 0 {
 		turbotTagsMap = map[string]string{}
-		for _, i := range serverlessCacheTag.TagList {
+		for _, i := range item.TagList {
 			turbotTagsMap[*i.Key] = *i.Value
 		}
 	}

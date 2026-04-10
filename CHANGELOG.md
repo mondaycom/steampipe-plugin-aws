@@ -1,3 +1,15 @@
+## v1.30.2 [2026-04-03]
+
+_Bug fixes_
+
+- Fixed Darwin AMD64 Steampipe Anywhere builds producing incorrect architecture binaries due to using ARM64 runner.
+
+## v1.30.1 [2026-03-31]
+
+_Bug fixes_
+
+- Fixed the `code` column in `aws_lambda_function` table to no longer expose the `Location` sub-field, a presigned S3 URL that allowed unauthenticated download of Lambda deployment packages. ([#2726](https://github.com/turbot/steampipe-plugin-aws/pull/2726))
+
 ## v1.30.0 [2026-03-06]
 
 _What's new?_
