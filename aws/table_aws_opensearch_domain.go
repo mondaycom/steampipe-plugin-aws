@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/opensearch"
 	"github.com/aws/aws-sdk-go-v2/service/opensearch/types"
@@ -33,9 +34,12 @@ func tableAwsOpenSearchDomain(_ context.Context) *plugin.Table {
 				Tags: map[string]string{"service": "es", "action": "DescribeDomain"},
 			},
 			{
-				Func:    listOpenSearchDomainTags,
-				Tags:    map[string]string{"service": "es", "action": "ListTags"},
-				Depends: []plugin.HydrateFunc{getOpenSearchDomain},
+				Func: listOpenSearchDomainTags,
+				Tags: map[string]string{"service": "es", "action": "ListTags"},
+			},
+			{
+				Func: getOpenSearchDomainArn,
+				Tags: map[string]string{"service": "sts", "action": "GetCallerIdentity"},
 			},
 		},
 		GetMatrixItemFunc: SupportedRegionMatrix(AWS_ES_SERVICE_ID),
@@ -54,14 +58,15 @@ func tableAwsOpenSearchDomain(_ context.Context) *plugin.Table {
 				Name:        "domain_id",
 				Description: "The unique identifier for the specified domain.",
 				Type:        proto.ColumnType_STRING,
-				Hydrate:     getOpenSearchDomain,
+				Hydrate:     getOpenSearchDomainArn,
+				Transform:   transform.FromField("DomainId"),
 			},
 			{
 				Name:        "arn",
 				Description: "The Amazon Resource Name (ARN) of the domain.",
 				Type:        proto.ColumnType_STRING,
-				Hydrate:     getOpenSearchDomain,
-				Transform:   transform.FromField("ARN"),
+				Hydrate:     getOpenSearchDomainArn,
+				Transform:   transform.FromField("Arn"),
 			},
 			{
 				Name:        "access_policies",
@@ -262,8 +267,8 @@ func tableAwsOpenSearchDomain(_ context.Context) *plugin.Table {
 				Name:        "akas",
 				Description: resourceInterfaceDescription("akas"),
 				Type:        proto.ColumnType_JSON,
-				Hydrate:     getOpenSearchDomain,
-				Transform:   transform.FromField("ARN").Transform(transform.EnsureStringArray),
+				Hydrate:     getOpenSearchDomainArn,
+				Transform:   transform.FromField("Arn").Transform(transform.EnsureStringArray),
 			},
 		}),
 	}
@@ -347,13 +352,42 @@ func getOpenSearchDomain(ctx context.Context, d *plugin.QueryData, h *plugin.Hyd
 	return data.DomainStatus, nil
 }
 
-func listOpenSearchDomainTags(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
-	// Domain will be nil if getOpenSearchDomain returned an error but
-	// was ignored through ignore_error_codes config arg
-	if h.HydrateResults["getOpenSearchDomain"] == nil {
-		return nil, nil
+type openSearchDomainArnData struct {
+	Arn      string
+	DomainId string
+}
+
+func getOpenSearchDomainArn(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
+	domainName := openSearchDomainName(h.Item)
+	region := d.EqualsQualString(matrixKeyRegion)
+
+	commonData, err := getCommonColumns(ctx, d, h)
+	if err != nil {
+		plugin.Logger(ctx).Error("aws_opensearch_domain.getOpenSearchDomainArn", "common_columns_error", err)
+		return nil, err
 	}
-	arn := h.HydrateResults["getOpenSearchDomain"].(*types.DomainStatus).ARN
+	commonColumnData := commonData.(*awsCommonColumnData)
+
+	arn := fmt.Sprintf("arn:%s:es:%s:%s:domain/%s",
+		commonColumnData.Partition, region, commonColumnData.AccountId, domainName)
+	domainId := fmt.Sprintf("%s/%s", commonColumnData.AccountId, domainName)
+
+	return &openSearchDomainArnData{Arn: arn, DomainId: domainId}, nil
+}
+
+func listOpenSearchDomainTags(ctx context.Context, d *plugin.QueryData, h *plugin.HydrateData) (interface{}, error) {
+	domainName := openSearchDomainName(h.Item)
+	region := d.EqualsQualString(matrixKeyRegion)
+
+	commonData, err := getCommonColumns(ctx, d, h)
+	if err != nil {
+		plugin.Logger(ctx).Error("aws_opensearch_domain.listOpenSearchDomainTags", "common_columns_error", err)
+		return nil, err
+	}
+	commonColumnData := commonData.(*awsCommonColumnData)
+
+	arn := fmt.Sprintf("arn:%s:es:%s:%s:domain/%s",
+		commonColumnData.Partition, region, commonColumnData.AccountId, domainName)
 
 	// Create Session
 	svc, err := OpenSearchClient(ctx, d)
@@ -369,7 +403,7 @@ func listOpenSearchDomainTags(ctx context.Context, d *plugin.QueryData, h *plugi
 
 	// Build the params
 	params := &opensearch.ListTagsInput{
-		ARN: arn,
+		ARN: &arn,
 	}
 
 	// Get call
@@ -380,6 +414,16 @@ func listOpenSearchDomainTags(ctx context.Context, d *plugin.QueryData, h *plugi
 	}
 
 	return op, nil
+}
+
+func openSearchDomainName(item interface{}) string {
+	switch v := item.(type) {
+	case types.DomainInfo:
+		return *v.DomainName
+	case *types.DomainStatus:
+		return *v.DomainName
+	}
+	return ""
 }
 
 //// TRANSFORM FUNCTION
