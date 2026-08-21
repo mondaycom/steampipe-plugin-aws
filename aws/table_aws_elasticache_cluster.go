@@ -349,7 +349,13 @@ func listTagsForElastiCacheCluster(ctx context.Context, d *plugin.QueryData, h *
 	if err != nil {
 		var ae smithy.APIError
 		if errors.As(err, &ae) {
-			if ae.ErrorCode() == "CacheClusterNotFound" {
+			// A cache cluster node's own status can be "available" while its
+			// parent replication group is still creating/modifying/deleting.
+			// ListTagsForResource fails against such a node with
+			// InvalidReplicationGroupState even though the row itself is valid,
+			// so treat it the same as CacheClusterNotFound: tags come back empty
+			// instead of failing the whole row.
+			if ae.ErrorCode() == "CacheClusterNotFound" || ae.ErrorCode() == "InvalidReplicationGroupState" {
 				return nil, nil
 			}
 		}
