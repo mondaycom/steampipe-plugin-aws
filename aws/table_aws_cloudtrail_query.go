@@ -259,6 +259,7 @@ func getCloudTrailQuery(ctx context.Context, d *plugin.QueryData, h *plugin.Hydr
 	}
 
 	params := &cloudtrail.DescribeQueryInput{
+		//nolint:staticcheck // still required when QueryId is a bare query ID rather than a full query ARN
 		EventDataStore: aws.String(eventDataSourceArn),
 		QueryId:        aws.String(queryId),
 	}
